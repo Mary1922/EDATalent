@@ -1,0 +1,10 @@
+# Carpetas temporales de Jupyter / Google Colab
+.ipynb_checkpoints/
+
+# Archivos del sistema operativo
+.DS_Store
+Thumbs.db
+
+# Datos (Opcional, si preferís que cada uno lo descargue en su Colab local)
+# *.csv
+# *.zip
