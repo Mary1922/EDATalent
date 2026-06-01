@@ -1,150 +1,168 @@
-import requests
-from bs4 import BeautifulSoup
-import pandas as pd
 import time
 
-print("🔍 SCRAPING DE TECNOEMPLEO.COM")
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+
+
+print("SCRAPING FROM TECNOEMPLEO.COM")
 print("=" * 70 + "\n")
 
-headers = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+HEADERS = {
+    "User-Agent": (
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/91.0.4472.124 Safari/537.36"
+    )
 }
 
-# Términos de búsqueda para los roles de datos
-terminos = [
-    'big-data',
-    'analista-de-datos', 
-    'ingeniero-de-datos',
-    'cientifico-de-datos'
+# These slugs must stay in Spanish because Tecnoempleo uses them in its URLs.
+SEARCH_TERMS = [
+    "big-data",
+    "analista-de-datos",
+    "ingeniero-de-datos",
+    "cientifico-de-datos",
 ]
 
-empleos = []
-contador = 1
+OUTPUT_FILE = "tecnoempleo_jobs_basic.csv"
 
-# Scraping para cada término de búsqueda
-for termino in terminos:
-    print(f"🔎 Buscando: '{termino}'...")
-    
+jobs = []
+job_number = 1
+
+for search_term in SEARCH_TERMS:
+    print(f"Searching: '{search_term}'...")
+
     try:
-        # Construir URL de búsqueda con la estructura correcta
-        url = f"https://www.tecnoempleo.com/ofertas-trabajo/{termino}"
-        
-        response = requests.get(url, headers=headers, timeout=15)
+        url = f"https://www.tecnoempleo.com/ofertas-trabajo/{search_term}"
+
+        response = requests.get(url, headers=HEADERS, timeout=15)
         response.raise_for_status()
-        print(f"   ✅ Conexión exitosa (Código: {response.status_code})")
-        
-        soup = BeautifulSoup(response.content, 'lxml')
-        
-        # Buscar los elementos de trabajo en la página
-        # El sitio usa divs con clase 'card' para los trabajos
-        jobs = soup.find_all('div', class_=['card', 'offer', 'job-item', 'anuncio'])
-        
-        # También buscar links que contengan ofertas
-        if not jobs:
-            jobs = soup.find_all('a', class_=['text-primary'])
-        
-        print(f"   📊 Elementos encontrados: {len(jobs)}\n")
-        
-        # Extraer información de cada trabajo
-        for i, job in enumerate(jobs[:30], 1):  # Limitar a 30 por término
+        print(f"   Successful connection (code: {response.status_code})")
+
+        soup = BeautifulSoup(response.content, "lxml")
+        job_elements = soup.find_all(
+            "div", class_=["card", "offer", "job-item", "anuncio"]
+        )
+
+        if not job_elements:
+            job_elements = soup.find_all("a", class_=["text-primary"])
+
+        print(f"   Elements found: {len(job_elements)}\n")
+
+        for job_element in job_elements[:30]:
             try:
-                # Intentar extraer del link/texto directo
-                texto = job.get_text(strip=True) if job else "No disponible"
-                href = job.get('href', '') if job else ""
-                
-                # Buscar información en el elemento
-                empresa_elem = job.find_parent('div', class_='card')
-                if not empresa_elem:
-                    empresa_elem = job
-                
-                # Extraer empresa (generalmente entre paréntesis en el texto)
-                empresa_text = "No disponible"
-                if "(" in texto and ")" in texto:
-                    empresa_text = texto[texto.rfind("(")+1:texto.rfind(")")]
-                    titulo_text = texto[:texto.rfind("(")].strip()
+                text = job_element.get_text(strip=True) if job_element else "Not available"
+                href = job_element.get("href", "") if job_element else ""
+
+                company_text = "Not available"
+                if "(" in text and ")" in text:
+                    company_text = text[text.rfind("(") + 1 : text.rfind(")")]
+                    title_text = text[: text.rfind("(")].strip()
                 else:
-                    titulo_text = texto
-                
-                # Si está vacío, intentar otra forma
-                if not titulo_text or titulo_text == "No disponible":
-                    titulo_text = texto[:80] if texto else "No disponible"
-                
-                # Construir URL completa si es relativa
-                if href and not href.startswith('http'):
+                    title_text = text
+
+                if not title_text or title_text == "Not available":
+                    title_text = text[:80] if text else "Not available"
+
+                if href and not href.startswith("http"):
                     href = "https://www.tecnoempleo.com" + href
-                
-                # Agregar a la lista si tiene información válida
-                if titulo_text and titulo_text != "No disponible" and len(titulo_text) > 3:
-                    empleos.append({
-                        'Búsqueda': termino.replace('-', ' ').title(),
-                        'Número': contador,
-                        'Título': titulo_text[:100],
-                        'Empresa': empresa_text[:80] if empresa_text != "No disponible" else "No especificada",
-                        'URL': href[:150],
-                        'Descripción': texto[:150]
-                    })
-                    print(f"   ✅ [{contador}] {titulo_text[:50]}...")
-                    contador += 1
-                    
-            except Exception as e:
-                print(f"   ⚠️ Error procesando elemento: {str(e)}")
+
+                if title_text and title_text != "Not available" and len(title_text) > 3:
+                    jobs.append(
+                        {
+                            "Search": search_term.replace("-", " ").title(),
+                            "Number": job_number,
+                            "Title": title_text[:100],
+                            "Company": (
+                                company_text[:80]
+                                if company_text != "Not available"
+                                else "Not specified"
+                            ),
+                            "URL": href[:150],
+                            "Description": text[:150],
+                        }
+                    )
+                    print(f"   [{job_number}] {title_text[:50]}...")
+                    job_number += 1
+
+            except Exception as error:
+                print(f"   Error processing element: {error}")
                 continue
-                
+
     except requests.exceptions.Timeout:
-        print(f"   ❌ Timeout - Servidor tardó demasiado\n")
-    except requests.exceptions.HTTPError as e:
-        print(f"   ❌ Error HTTP: {str(e)}\n")
-    except Exception as e:
-        print(f"   ❌ Error: {str(e)}\n")
-    
-    # Pequeña pausa entre búsquedas
+        print("   Timeout: server took too long\n")
+    except requests.exceptions.HTTPError as error:
+        print(f"   HTTP error: {error}\n")
+    except Exception as error:
+        print(f"   Error: {error}\n")
+
     time.sleep(1)
 
-# Crear DataFrame
-df = pd.DataFrame(empleos)
+df = pd.DataFrame(jobs)
 
-# Mostrar estadísticas
 print("\n" + "=" * 70)
-print("📊 RESUMEN DEL SCRAPING")
+print("SCRAPING SUMMARY")
 print("=" * 70)
-print(f"\n✅ Total de empleos extraídos: {len(df)}")
+print(f"\nTotal jobs extracted: {len(df)}")
 
 if len(df) > 0:
-    print(f"\n📋 DISTRIBUCIÓN POR TIPO DE BÚSQUEDA:")
-    print(df['Búsqueda'].value_counts().to_string())
-    
-    print(f"\n🏢 PRIMEROS 5 EMPLEOS:")
-    print(df[['Título', 'Empresa', 'Búsqueda']].head(5).to_string(index=False))
-    
-    # Guardar en CSV
-    archivo_csv = 'empleos_tecnoempleo.csv'
-    df.to_csv(archivo_csv, index=False, encoding='utf-8-sig')
-    
-    print(f"\n{'=' * 70}")
-    print(f"✅ ¡Archivo guardado exitosamente!")
-    print(f"📁 Nombre: {archivo_csv}")
-    print(f"📊 Total de registros: {len(df)}")
-    print(f"{'=' * 70}\n")
-    
-    # Mostrar resumen
-    print("📋 RESUMEN DEL DATASET:")
-    print(df.head(10).to_string(index=False))
-    
-else:
-    print("\n⚠️ No se extrajeron empleos con la búsqueda automática.")
-    print("💡 Usando datos de ejemplo realistas de roles de datos...")
-    
-    # Datos de ejemplo realista
-    empleos_ejemplo = [
-        {'Búsqueda': 'Big-Data', 'Número': 1, 'Título': 'Data Engineer Apache Spark', 'Empresa': 'Tech Cloud', 'URL': 'https://tecnoempleo.com/...', 'Descripción': 'Se busca ingeniero de datos con experiencia en Apache Spark'},
-        {'Búsqueda': 'Analista-De-Datos', 'Número': 2, 'Título': 'Analista de Datos SQL', 'Empresa': 'Analytics Corp', 'URL': 'https://tecnoempleo.com/...', 'Descripción': 'Analista con experiencia en SQL y Power BI'},
-        {'Búsqueda': 'Ingeniero-De-Datos', 'Número': 3, 'Título': 'Ingeniero de Datos Python', 'Empresa': 'Data Systems', 'URL': 'https://tecnoempleo.com/...', 'Descripción': 'Ingeniero con experiencia en Python y AWS'},
-        {'Búsqueda': 'Cientifico-De-Datos', 'Número': 4, 'Título': 'Científico de Datos ML', 'Empresa': 'AI Solutions', 'URL': 'https://tecnoempleo.com/...', 'Descripción': 'Especialista en Machine Learning y TensorFlow'},
-    ]
-    
-    df = pd.DataFrame(empleos_ejemplo)
-    archivo_csv = 'empleos_tecnoempleo.csv'
-    df.to_csv(archivo_csv, index=False, encoding='utf-8-sig')
-    
-    print(f"✅ Archivo con datos de ejemplo guardado: {archivo_csv}")
+    print("\nDISTRIBUTION BY SEARCH TYPE:")
+    print(df["Search"].value_counts().to_string())
 
+    print("\nFIRST 5 JOBS:")
+    print(df[["Title", "Company", "Search"]].head(5).to_string(index=False))
+
+    df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+
+    print(f"\n{'=' * 70}")
+    print("File saved successfully")
+    print(f"Name: {OUTPUT_FILE}")
+    print(f"Total records: {len(df)}")
+    print(f"{'=' * 70}\n")
+
+    print("DATASET SUMMARY:")
+    print(df.head(10).to_string(index=False))
+
+else:
+    print("\nNo jobs were extracted with the automatic search.")
+    print("Using realistic sample data for data roles.")
+
+    sample_jobs = [
+        {
+            "Search": "Big Data",
+            "Number": 1,
+            "Title": "Data Engineer Apache Spark",
+            "Company": "Tech Cloud",
+            "URL": "https://tecnoempleo.com/...",
+            "Description": "Looking for a data engineer with Apache Spark experience",
+        },
+        {
+            "Search": "Data Analyst",
+            "Number": 2,
+            "Title": "SQL Data Analyst",
+            "Company": "Analytics Corp",
+            "URL": "https://tecnoempleo.com/...",
+            "Description": "Analyst with SQL and Power BI experience",
+        },
+        {
+            "Search": "Data Engineer",
+            "Number": 3,
+            "Title": "Python Data Engineer",
+            "Company": "Data Systems",
+            "URL": "https://tecnoempleo.com/...",
+            "Description": "Engineer with Python and AWS experience",
+        },
+        {
+            "Search": "Data Scientist",
+            "Number": 4,
+            "Title": "ML Data Scientist",
+            "Company": "AI Solutions",
+            "URL": "https://tecnoempleo.com/...",
+            "Description": "Specialist in Machine Learning and TensorFlow",
+        },
+    ]
+
+    df = pd.DataFrame(sample_jobs)
+    df.to_csv(OUTPUT_FILE, index=False, encoding="utf-8-sig")
+
+    print(f"Sample data file saved: {OUTPUT_FILE}")
