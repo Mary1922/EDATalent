@@ -1,10 +1,19 @@
-# Carpetas temporales de Jupyter / Google Colab
+# Jupyter / Google Colab temporary folders
 .ipynb_checkpoints/
 
-# Archivos del sistema operativo
+# Python cache folders
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+venv - copia/
+.venv/
+
+# Operating system files
 .DS_Store
 Thumbs.db
 
-# Datos (Opcional, si preferís que cada uno lo descargue en su Colab local)
+# Data files (optional, if each person should download them locally in Colab)
 # *.csv
 # *.zip
