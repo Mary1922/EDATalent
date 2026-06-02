@@ -1,4 +1,20 @@
+# ==============================================================================
+# DataTalent Solutions - Requisitos del Proyecto (EDA Mercado Laboral 2020-2026)
+# ==============================================================================
+
+# 🌐 Extracción de Datos & Web Scraping
 requests==2.31.0
 beautifulsoup4==4.12.2
-pandas==2.3.3
 lxml==6.0.4
+
+# 📊 Análisis de Datos & Cálculo Estadístico
+pandas==2.3.3
+numpy>=1.24.0
+scipy>=1.10.0
+
+# 📈 Visualización de Datos & Gráficos Ejecutivos
+matplotlib>=3.7.0
+seaborn>=0.13.0
+
+# 📓 Entorno de Desarrollo Interactivo
+jupyter>=1.0.0

@@ -336,11 +336,13 @@ source .venv/bin/activate
 
 ### 3. Instalar dependencias
 
+# Instala de forma automática todo el entorno analítico, gráfico y de ejecución (incluyendo Jupyter y las librerías estadísticas) con un solo comando:
+
 ```bash
 pip install -r requirements.txt
 ```
 
-Para ejecutar todos los notebooks también se recomienda instalar:
+# Para ejecutar todos los notebooks también se recomienda instalar:
 
 ```bash
 pip install jupyter matplotlib seaborn scipy numpy
